@@ -3,7 +3,7 @@ import numpy as np
 from scipy.io import savemat
 import os
 
-image_path = r"C:\Users\isakh\Desktop\bee_image_processing\imageProcessing\img_1.jpg" 
+image_path = r"C:\Users\isakh\Desktop\bee_image_processing\imageProcessing\img_2a.jpg" 
 output_dir = r"C:\Users\isakh\Desktop\bee_image_processing\processed_images"             
 # -------------------------------
 
