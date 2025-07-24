@@ -16,9 +16,9 @@ img_copy = img.copy()
 points = []
 
 # Mouse callback function
-def click_event(event, x, y):
+def click_event(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
-        points.append([x, y])  # Store point as list, not tuple (for .mat format)
+        points.append([x, y])
         cv2.circle(img_copy, (x, y), 4, (0, 255, 0), -1)
         cv2.imshow("Image", img_copy)
 
