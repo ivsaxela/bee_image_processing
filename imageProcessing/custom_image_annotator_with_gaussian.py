@@ -5,63 +5,76 @@ import h5py
 from pathlib import Path
 
 # -------- Configuration --------
-image_path = Path(r"C:/Users/isakh/Desktop/bee_image_processing/imageProcessing/edited_images/img_2a.jpg")
+image_dir = Path(r"C:/Users/isakh/Desktop/bee_image_processing/imageProcessing/edited_images")
 output_dir = Path(r"C:/Users/isakh/Desktop/bee_image_processing/processed_images")
-gaussian_sigma = 5  # Tune based on object size
+gaussian_sigma = 5
 # -------------------------------
 
-# Load image
-if not image_path.exists():
-    raise FileNotFoundError(f"Image not found: {image_path}")
-img = cv2.imread(str(image_path))
-img_copy = img.copy()
-height, width = img.shape[:2]
+# Find all .jpg images
+image_paths = sorted(image_dir.glob("*.jpg"))
 
-# Create output directory if it doesn't exist
+# Make sure output directory exists
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# Annotated points
-points = []
+print(f"Found {len(image_paths)} .jpg images to annotate.\n")
 
-# Mouse callback
-def click_event(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        points.append([x, y])
-        cv2.circle(img_copy, (x, y), 4, (0, 255, 0), -1)
-        cv2.imshow("Image", img_copy)
+for image_path in image_paths:
+    img = cv2.imread(str(image_path))
+    if img is None:
+        print(f"Failed to load {image_path.name}")
+        continue
 
-# Show image and register callback
-cv2.imshow("Image", img_copy)
-cv2.setMouseCallback("Image", click_event)
-print("Click on object centers. Press 's' to save, 'q' to quit without saving.")
+    height, width = img.shape[:2]
+    img_copy = img.copy()
+    points = []
 
-while True:
-    key = cv2.waitKey(0)
-    if key == ord('s'):
-        break
-    elif key == ord('q'):
-        print("Annotation canceled.")
-        cv2.destroyAllWindows()
-        exit()
+    def click_event(event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            points.append([x, y])
+            cv2.circle(img_copy, (x, y), 4, (0, 255, 0), -1)
+            cv2.imshow("Image", img_copy)
 
-cv2.destroyAllWindows()
+    cv2.imshow("Image", img_copy)
+    cv2.setMouseCallback("Image", click_event)
 
-# Convert to NumPy array
-points_array = np.array(points, dtype=np.float32)
+    print(f"Annotating: {image_path.name}")
+    print("Click on object centers.")
+    print("Press 's' to save, 'n' to skip, or 'q' to quit.")
 
-# Generate density map
-density_map = np.zeros((height, width), dtype=np.float32)
-for x, y in points_array:
-    if 0 <= int(y) < height and 0 <= int(x) < width:
-        temp = np.zeros((height, width), dtype=np.float32)
-        temp[int(y), int(x)] = 1
-        density_map += gaussian_filter(temp, sigma=gaussian_sigma)
+    while True:
+        key = cv2.waitKey(0)
+        if key == ord('s'):
+            break
+        elif key == ord('n'):
+            print(f"Skipped: {image_path.name}")
+            cv2.destroyAllWindows()
+            points = None
+            break
+        elif key == ord('q'):
+            print("Quitting.")
+            cv2.destroyAllWindows()
+            exit()
 
-# Save to CSRNet-compatible .h5 file
-base_name = image_path.stem
-h5_path = output_dir / f"GT_{base_name}.h5"
+    cv2.destroyAllWindows()
 
-with h5py.File(h5_path, 'w') as hf:
-    hf['density'] = density_map
+    if points is None:
+        continue
 
-print(f"✅ Saved {len(points)} points and CSRNet-compatible density map to: {h5_path}")
+    points_array = np.array(points, dtype=np.float32)
+
+    # Generate density map
+    density_map = np.zeros((height, width), dtype=np.float32)
+    for x, y in points_array:
+        if 0 <= int(y) < height and 0 <= int(x) < width:
+            temp = np.zeros((height, width), dtype=np.float32)
+            temp[int(y), int(x)] = 1
+            density_map += gaussian_filter(temp, sigma=gaussian_sigma)
+
+    # Save to .h5
+    h5_filename = output_dir / f"GT_{image_path.stem}.h5"
+    with h5py.File(h5_filename, 'w') as hf:
+        hf['density'] = density_map
+
+    print(f"Saved {len(points)} points to {h5_filename}\n")
+
+print("Annotation complete.")
