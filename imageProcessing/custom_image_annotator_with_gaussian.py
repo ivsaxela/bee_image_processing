@@ -1,22 +1,21 @@
 import cv2
 import numpy as np
-from scipy.io import savemat
 from scipy.ndimage import gaussian_filter
+import h5py
 import os
 
 # -------- Configuration --------
 image_path = r"C:\Users\isakh\Desktop\bee_image_processing\imageProcessing\img_2a.jpg"
 output_dir = r"C:\Users\isakh\Desktop\bee_image_processing\processed_images"
-resize_width, resize_height = 1000, 800
-gaussian_sigma = 5  # Adjust as needed
+gaussian_sigma = 5  # Adjust based on object size
 # -------------------------------
 
-# Load and resize the image
+# Load image
 img = cv2.imread(image_path)
 if img is None:
     raise FileNotFoundError(f"Image not found: {image_path}")
-img = cv2.resize(img, (resize_width, resize_height))
 img_copy = img.copy()
+height, width = img.shape[:2]
 
 points = []
 
@@ -27,11 +26,11 @@ def click_event(event, x, y, flags, param):
         cv2.circle(img_copy, (x, y), 4, (0, 255, 0), -1)
         cv2.imshow("Image", img_copy)
 
-# Annotate
+# Open window and register callback
 cv2.imshow("Image", img_copy)
 cv2.setMouseCallback("Image", click_event)
-
 print("Click on object centers. Press 's' to save, 'q' to quit without saving.")
+
 while True:
     key = cv2.waitKey(0)
     if key == ord('s'):
@@ -43,26 +42,22 @@ while True:
 
 cv2.destroyAllWindows()
 
-# Convert to array
+# Convert points to array
 points_array = np.array(points, dtype=np.float32)
 
-# Create blank density map
-density_map = np.zeros((resize_height, resize_width), dtype=np.float32)
-
-# Add Gaussian for each point
+# Generate density map
+density_map = np.zeros((height, width), dtype=np.float32)
 for x, y in points_array:
-    if 0 <= int(y) < resize_height and 0 <= int(x) < resize_width:
-        temp_map = np.zeros((resize_height, resize_width), dtype=np.float32)
-        temp_map[int(y), int(x)] = 1
-        density_map += gaussian_filter(temp_map, sigma=gaussian_sigma)
+    if 0 <= int(y) < height and 0 <= int(x) < width:
+        temp = np.zeros((height, width), dtype=np.float32)
+        temp[int(y), int(x)] = 1
+        density_map += gaussian_filter(temp, sigma=gaussian_sigma)
 
-# Save to .mat
+# Save as .h5 (required format for CSRNet)
 base_name = os.path.splitext(os.path.basename(image_path))[0]
-mat_path = os.path.join(output_dir, f"GT_{base_name}.mat")
+h5_path = os.path.join(output_dir, f"GT_{base_name}.h5")
 
-savemat(mat_path, {
-    'image_info': [[{'location': points_array}]],
-    'density': density_map
-})
+with h5py.File(h5_path, 'w') as hf:
+    hf['density'] = density_map
 
-print(f"✅ Saved {len(points)} points and density map to {mat_path}")
+print(f" Saved {len(points)} points and CSRNet-compatible density map to {h5_path}")
