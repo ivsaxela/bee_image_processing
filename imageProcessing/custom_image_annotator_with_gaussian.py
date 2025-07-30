@@ -5,14 +5,17 @@ import h5py
 from pathlib import Path
 
 # -------- Configuration --------
-image_dir = Path(r"C:/Users/isakh/Desktop/bee_image_processing/processed_images/JPG_images")
-output_dir = Path(r"C:/Users/isakh/Desktop/bee_image_processing/processed_images/GT_images")
+ROOT = Path(__file__).resolve().parent
+
+# Now define paths relative to ROOT
+image_dir = ROOT / "processed_images" / "JPG_images"
+gt_dir = ROOT / "processed_images" / "GT_images"
 gaussian_sigma = 5
 # -------------------------------
 
 # Find all .jpg images
 image_paths = sorted(image_dir.glob("*.jpg"))
-output_dir.mkdir(parents=True, exist_ok=True)
+gt_dir.mkdir(parents=True, exist_ok=True)
 
 print(f"Found {len(image_paths)} .jpg images to annotate.\n")
 
@@ -70,7 +73,7 @@ for image_path in image_paths:
                     temp[int(y), int(x)] = 1
                     density_map += gaussian_filter(temp, sigma=gaussian_sigma)
 
-            h5_filename = output_dir / f"GT_{image_path.stem}.h5"
+            h5_filename = gt_dir / f"GT_{image_path.stem}.h5"
             with h5py.File(h5_filename, 'w') as hf:
                 hf['density'] = density_map
 

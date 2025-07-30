@@ -7,11 +7,11 @@ from model import CSRNet
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# Dataset and Dataloader
+# Dataset and DataLoader
 dataset = DensityDataset()
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-# Model setup
+# Model, loss, optimizer
 model = CSRNet().to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
@@ -31,6 +31,10 @@ for epoch in range(epochs):
 
         optimizer.zero_grad()
         loss.backward()
+
+        # Gradient clipping here
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
+
         optimizer.step()
 
         epoch_loss += loss.item()
