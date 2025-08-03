@@ -7,13 +7,13 @@ from pathlib import Path
 # -------- Configuration --------
 ROOT = Path(__file__).resolve().parent.parent
 
-# Paths relative to ROOT
+# Define paths
 image_dir = ROOT / "processed_images" / "JPG_images"
 gt_dir = ROOT / "processed_images" / "GT_images"
 gaussian_sigma = 5
+window_size = (960, 540)  # Resize window for smaller screen
 # -------------------------------
 
-# Find all .jpg images
 image_paths = sorted(image_dir.glob("*.jpg"))
 gt_dir.mkdir(parents=True, exist_ok=True)
 
@@ -27,39 +27,30 @@ for image_path in image_paths:
 
     height, width = img.shape[:2]
     img_copy = img.copy()
+    draw_img = img.copy()
+
+    # Resize image only for display
+    display_img = cv2.resize(draw_img, window_size)
+    resize_factor_x = width / window_size[0]
+    resize_factor_y = height / window_size[1]
+
     points = []
-
-    # Determine screen resolution or max display size
-    screen_res = 1280, 720  # Adjust if needed or detect dynamically
-    scale_width = screen_res[0] / width
-    scale_height = screen_res[1] / height
-    scale = min(scale_width, scale_height, 1)  # Only scale down if needed
-
-    # Prepare resized image for display (if scaling needed)
-    if scale < 1:
-        display_width = int(width * scale)
-        display_height = int(height * scale)
-        resized_img = cv2.resize(img_copy, (display_width, display_height), interpolation=cv2.INTER_AREA)
-    else:
-        resized_img = img_copy.copy()
-        display_width, display_height = width, height
 
     def click_event(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Map click coords from display to original image scale
-            orig_x = int(x / scale)
-            orig_y = int(y / scale)
+            # Scale click coordinates back to original size
+            orig_x = int(x * resize_factor_x)
+            orig_y = int(y * resize_factor_y)
             points.append([orig_x, orig_y])
-            # Draw circle on original size image copy, then resize for display
-            cv2.circle(img_copy, (orig_x, orig_y), 4, (0, 255, 0), -1)
-            # Update resized image for display after drawing
-            temp_display = cv2.resize(img_copy, (display_width, display_height), interpolation=cv2.INTER_AREA)
-            cv2.imshow("Image", temp_display)
 
-    # Create resizable window
+            # Draw on the resized display image
+            cv2.circle(display_img, (x, y), 4, (0, 255, 0), -1)
+            cv2.imshow("Image", display_img)
+
     cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
-    cv2.imshow("Image", resized_img)
+    cv2.resizeWindow("Image", *window_size)
     cv2.setMouseCallback("Image", click_event)
+    cv2.imshow("Image", display_img)
 
     print(f"Annotating: {image_path.name}")
     print("Click on object centers.")
@@ -86,6 +77,7 @@ for image_path in image_paths:
 
     if skip_image:
         print(f"Skipped: {image_path.name}\n")
+        continue
 
     if save_image:
         points_array = np.array(points, dtype=np.float32)
