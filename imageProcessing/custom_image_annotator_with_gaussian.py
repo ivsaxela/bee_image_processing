@@ -10,8 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Define paths
 image_dir = ROOT / "processed_images" / "JPG_images"
 gt_dir = ROOT / "processed_images" / "GT_images"
-gaussian_sigma = 5
-window_size = (960, 540)  # Resize window for smaller screen
+gaussian_sigma = 15
 # -------------------------------
 
 image_paths = sorted(image_dir.glob("*.jpg"))
@@ -30,6 +29,7 @@ for image_path in image_paths:
     draw_img = img.copy()
 
     # Resize image only for display
+    window_size = (width // 2, height // 2)
     display_img = cv2.resize(draw_img, window_size)
     resize_factor_x = width / window_size[0]
     resize_factor_y = height / window_size[1]
