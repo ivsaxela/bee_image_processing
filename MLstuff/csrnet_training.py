@@ -45,7 +45,7 @@ criterion = HybridLoss(alpha=1.0, beta=0.1, use_mae=True)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
 # Training loop
-epochs = 30
+epochs = 20
 for epoch in range(epochs):
     model.train()
     epoch_total_loss = 0.0

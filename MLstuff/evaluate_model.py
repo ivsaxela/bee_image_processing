@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from dataset import DensityDataset
 from model import CSRNet
 import numpy as np
+from pathlib import Path
 
 # Device setup
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,7 +15,8 @@ model.load_state_dict(torch.load("csrnet_trained.pth", map_location=device))
 model.eval()
 
 # Load dataset (already sorted internally using pathlib)
-dataset = DensityDataset(root_dir='path_to_images')  # Replace with your actual image directory
+ROOT = Path(__file__).resolve().parent.parent
+dataset = DensityDataset(ROOT / "processed_images" / "JPG_images")  # Replace with your actual image directory
 dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
 # Metrics

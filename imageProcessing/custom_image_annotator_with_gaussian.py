@@ -8,8 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # Define paths
-image_dir = ROOT / "processed_images" / "JPG_images"
-gt_dir = ROOT / "processed_images" / "GT_images"
+image_dir = ROOT / "imageProcessing" / "JPG_images_unedited"
+gt_dir = ROOT / "processed_images" / "Bee_training_GT"
 gaussian_sigma = 15
 # -------------------------------
 
