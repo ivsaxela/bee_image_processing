@@ -45,7 +45,7 @@ criterion = HybridLoss(alpha=1.0, beta=0.1, use_mae=True)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
 # Training loop
-epochs = 20
+epochs = 30
 for epoch in range(epochs):
     model.train()
     epoch_total_loss = 0.0
@@ -77,3 +77,5 @@ for epoch in range(epochs):
     # Print with percentage count loss (2 decimals)
     print(f"[Epoch {epoch + 1}/{epochs}] Total Loss: {avg_total_loss:.4f} | "
           f"Pixel Loss: {avg_pixel_loss:.4f} | Count Loss: {avg_count_loss*100:.4f}%")
+torch.save(model.state_dict(), "csrnet_trained.pth")
+print("Model saved to csrnet_trained.pth")
