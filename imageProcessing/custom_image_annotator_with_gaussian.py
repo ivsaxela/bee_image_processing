@@ -3,22 +3,35 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 import h5py
 from pathlib import Path
+import re
 
 # -------- Configuration --------
 ROOT = Path(__file__).resolve().parent.parent
-
-# Define paths
 image_dir = ROOT / "processed_images" / "JPG_images"
 gt_dir = ROOT / "processed_images" / "GT_images"
 gaussian_sigma = 25
 # -------------------------------
 
-image_paths = sorted(image_dir.glob("*.jpg"))
+# Ensure GT directory exists
 gt_dir.mkdir(parents=True, exist_ok=True)
 
+# Sort image files numerically
+def extract_number(path):
+    match = re.search(r'(\d+)', path.stem)
+    return int(match.group(1)) if match else -1
+
+image_paths = sorted(image_dir.glob("*.jpg"), key=extract_number)
 print(f"Found {len(image_paths)} .jpg images to annotate.\n")
 
+# Loop over images
 for image_path in image_paths:
+    h5_path = gt_dir / f"GT_{image_path.stem}.h5"
+
+    # Skip if already annotated
+    if h5_path.exists():
+        print(f"Already annotated: {image_path.name}, skipping.")
+        continue
+
     img = cv2.imread(str(image_path))
     if img is None:
         print(f"Failed to load {image_path.name}")
@@ -28,9 +41,9 @@ for image_path in image_paths:
     img_copy = img.copy()
     draw_img = img.copy()
 
-    # Resize image only for display
+    # Resize image for display only
     window_size = (width // 2, height // 2)
-    display_img = [cv2.resize(draw_img, window_size)]  # wrapped in list
+    display_img = [cv2.resize(draw_img, window_size)]
     resize_factor_x = width / window_size[0]
     resize_factor_y = height / window_size[1]
 
@@ -46,7 +59,6 @@ for image_path in image_paths:
 
     def click_event(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Scale click coordinates back to original size
             orig_x = int(x * resize_factor_x)
             orig_y = int(y * resize_factor_y)
             points.append([orig_x, orig_y])
@@ -57,7 +69,7 @@ for image_path in image_paths:
     cv2.setMouseCallback("Image", click_event)
     cv2.imshow("Image", display_img[0])
 
-    print(f"Annotating: {image_path.name}")
+    print(f"\nAnnotating: {image_path.name}")
     print("Click on object centers.")
     print("Press 's' to save, 'n' to skip, 'q' to quit, or 'u' to undo last point.")
 
@@ -101,11 +113,10 @@ for image_path in image_paths:
                 temp[int(y), int(x)] = 1
                 density_map += gaussian_filter(temp, sigma=gaussian_sigma)
 
-        h5_filename = gt_dir / f"GT_{image_path.stem}.h5"
-        with h5py.File(h5_filename, 'w') as hf:
+        with h5py.File(h5_path, 'w') as hf:
             hf['density'] = density_map
 
-        print(f"Saved {len(points)} points to {h5_filename}\n")
+        print(f"Saved {len(points)} points to {h5_path.name}\n")
 
     if quit_now:
         print("Quitting annotation.")
