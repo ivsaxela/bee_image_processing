@@ -8,9 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # Define paths
-image_dir = ROOT / "imageProcessing" / "JPG_images_unedited"
-gt_dir = ROOT / "processed_images" / "Bee_training_GT"
-gaussian_sigma = 15
+image_dir = ROOT / "processed_images" / "JPG_images"
+gt_dir = ROOT / "processed_images" / "GT_images"
+gaussian_sigma = 25
 # -------------------------------
 
 image_paths = sorted(image_dir.glob("*.jpg"))
@@ -30,11 +30,19 @@ for image_path in image_paths:
 
     # Resize image only for display
     window_size = (width // 2, height // 2)
-    display_img = cv2.resize(draw_img, window_size)
+    display_img = [cv2.resize(draw_img, window_size)]  # wrapped in list
     resize_factor_x = width / window_size[0]
     resize_factor_y = height / window_size[1]
 
     points = []
+
+    def redraw_points():
+        display_img[0] = cv2.resize(img_copy.copy(), window_size)
+        for px, py in points:
+            scaled_x = int(px / resize_factor_x)
+            scaled_y = int(py / resize_factor_y)
+            cv2.circle(display_img[0], (scaled_x, scaled_y), 4, (0, 255, 0), -1)
+        cv2.imshow("Image", display_img[0])
 
     def click_event(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -42,19 +50,16 @@ for image_path in image_paths:
             orig_x = int(x * resize_factor_x)
             orig_y = int(y * resize_factor_y)
             points.append([orig_x, orig_y])
-
-            # Draw on the resized display image
-            cv2.circle(display_img, (x, y), 4, (0, 255, 0), -1)
-            cv2.imshow("Image", display_img)
+            redraw_points()
 
     cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Image", *window_size)
     cv2.setMouseCallback("Image", click_event)
-    cv2.imshow("Image", display_img)
+    cv2.imshow("Image", display_img[0])
 
     print(f"Annotating: {image_path.name}")
     print("Click on object centers.")
-    print("Press 's' to save, 'n' to skip, or 'q' to quit.")
+    print("Press 's' to save, 'n' to skip, 'q' to quit, or 'u' to undo last point.")
 
     annotating = True
     save_image = False
@@ -72,6 +77,13 @@ for image_path in image_paths:
         elif key == ord('q'):
             quit_now = True
             annotating = False
+        elif key == ord('u'):
+            if points:
+                points.pop()
+                print("Removed last point.")
+                redraw_points()
+            else:
+                print("No points to remove.")
 
     cv2.destroyAllWindows()
 
