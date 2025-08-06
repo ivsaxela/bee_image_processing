@@ -51,7 +51,7 @@ criterion = HybridLoss(alpha=1.0, beta=0.1, use_mae=True)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
 # Prepare checkpoint saving
-epochs = 7
+epochs = 20
 model_dir = Path("checkpoints")
 model_dir.mkdir(exist_ok=True)
 saved_models = []
@@ -115,12 +115,12 @@ for epoch in range(epochs):
     torch.save(model.state_dict(), epoch_model_path)
     saved_models.append((epoch_model_path, avg_test_count))
 
-    if avg_test_count < best_loss:
-        best_loss = avg_test_count
+    if avg_train_count < best_loss:
+        best_loss = avg_train_count
         best_model_path = epoch_model_path
 
 # Cleanup: keep only the best model
-print(f"\nBest model: {best_model_path.name} with %Count Loss: {best_loss * 100:.2f}%")
+print(f"\nBest model: {best_model_path.name} (chosen by training %Count Loss: {best_loss * 100:.2f}%)")
 for path, _ in saved_models:
     if path != best_model_path:
         try:
